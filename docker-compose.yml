@@ -1,0 +1,15 @@
+version: "3.5"
+
+services:
+  sento-api:
+    container_name: sento-api
+    build:
+      context: .
+    volumes:
+      - ./config.toml:/usr/bin/config.toml:ro
+    networks:
+      - sento-net
+
+networks:
+  sento-net:
+    name: sento-net

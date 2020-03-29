@@ -1,0 +1,12 @@
+version: "3.5"
+
+# This file can override or add some values to the Docker Compose config found in
+# `docker-compose.yml`. You can change the port where the app will be served.
+# Check https://docs.docker.com/compose/extends/ for more info.
+# Remember that this file must be copied and renamed as `docker-compose.override.yml` in order
+# to apply your overrides to the `docker-compose.yml` file.
+
+services:
+  sento-api:
+    ports:
+      - "3000:3000"  # HOST:CONTAINER
