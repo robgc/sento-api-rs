@@ -1,0 +1,35 @@
+[api]
+# debug, must be one of: True, False
+# TODO: Does Actix have a debug mode
+# debug = False
+
+# the IP or hostname + port where the API will listen to requests
+host = "0.0.0.0:3000"
+
+
+# Database configuration
+[postgres]
+# IP or hostname where the database is listening
+host = "postgres"
+
+# port where the database is listening
+port = 5432
+
+# the database to use for data storage
+database = "sento"
+
+# the user with access to the sento schema and database
+user = "sento"
+
+# the password for the sento user
+password = "sento"
+
+
+# Logging level configurations for each module
+# Possible values: debug, trace, info, warn, error
+[logging]
+# Logging configuration for Actix
+actix_level = "info"
+
+# Logging level for internal API operations
+app_level = "info"
