@@ -1,13 +1,12 @@
-use actix_web::web;
 use failure::Error;
 use serde_json;
 
-use crate::db::DbConnection;
+use crate::db::DbPool;
 
-pub fn get_active_locations(
-    conn: &mut DbConnection,
-    _params: Option<()>,
+pub async fn get_active_locations(
+    db_pool: &DbPool,
 ) -> Result<Vec<serde_json::Value>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         WITH active_locations as (
             SELECT DISTINCT
@@ -44,16 +43,17 @@ pub fn get_active_locations(
             active_locations_as_geojson;
     ";
 
-    conn.query(stmt, &[])?
+    conn.query(stmt, &[]).await?
         .into_iter()
         .map(|row| { Ok(row.try_get(0)?) })
         .collect()
 }
 
-pub fn get_current_trends_for_location(
-    conn: &mut DbConnection,
-    params: Option<web::Path<(String,)>>,
+pub async fn get_current_trends_for_location(
+    db_pool: &DbPool,
+    topic_id: &String,
 ) -> Result<Vec<serde_json::Value>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         WITH filtered_locations as (
             SELECT DISTINCT
@@ -69,7 +69,7 @@ pub fn get_current_trends_for_location(
                     'id', locs.id,
                     'geometry', ST_AsGeoJSON(locs.the_geom_point)::jsonb,
                     'properties', json_build_object(
-                        'name', locs.name,
+                        'name', locs.name,;;
                         'osm_name', locs.osm_name
                     )
                 ) AS feature
@@ -87,9 +87,7 @@ pub fn get_current_trends_for_location(
                 filtered_locations_as_geojson;
     ";
 
-    let param_values = params.unwrap();
-
-    conn.query(stmt, &[&param_values.0])?
+    conn.query(stmt, &[topic_id]).await?
         .into_iter()
         .map(|row| { Ok(row.try_get(0)?) })
         .collect()

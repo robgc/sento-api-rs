@@ -1,41 +1,22 @@
-use actix_web::{web, Error as AWError, HttpResponse};
-use futures::future::Future;
+use actix_web::{web, Error as ActixWebError, HttpResponse};
 
-use crate::db::{execute_query, DbPool};
+use crate::db::{DbPool};
 use crate::models::reports as Model;
 
-pub fn get_sentiment_report_by_trend(
+pub async fn get_sentiment_report_by_trend(
     db_pool: web::Data<DbPool>,
     path_params: web::Path<(String,)>,
-) -> Box<dyn Future<Item = HttpResponse, Error = AWError>> {
-    Box::new(
-        execute_query(
-            &db_pool,
-            Model::get_sentiments_of_trend,
-            Some(path_params),
-        )
-        .map_err(AWError::from)
-        .map(|result| {
-            let response_value = result.first().unwrap();
-            HttpResponse::Ok().json(response_value)
-        })
-    )
+) -> Result<HttpResponse, ActixWebError> {
+    let query_result = Model::get_sentiments_of_trend(&db_pool, &path_params.0).await?;
+
+    Ok(HttpResponse::Ok().json(query_result.first().unwrap()))
 }
 
-pub fn get_sentiment_report_by_location_and_trend(
+pub async fn get_sentiment_report_by_location_and_trend(
     db_pool: web::Data<DbPool>,
     path_params: web::Path<(String, i32)>,
-) -> Box<dyn Future<Item = HttpResponse, Error = AWError>> {
-    Box::new(
-        execute_query(
-            &db_pool,
-            Model::get_sentiments_of_trend_in_location,
-            Some(path_params),
-        )
-        .map_err(AWError::from)
-        .map(|result| {
-            let response_value = result.first().unwrap();
-            HttpResponse::Ok().json(response_value)
-        })
-    )
+) -> Result<HttpResponse, ActixWebError> {
+    let query_result = Model::get_sentiments_of_trend_in_location(&db_pool, &path_params.0, &path_params.1).await?;
+
+    Ok(HttpResponse::Ok().json(query_result.first().unwrap()))
 }

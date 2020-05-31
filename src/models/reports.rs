@@ -1,8 +1,7 @@
-use actix_web::web;
 use failure::Error;
 use serde::{Deserialize, Serialize};
 
-use crate::db::DbConnection;
+use crate::db::DbPool;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,10 +12,11 @@ pub struct SentimentReport {
     total: i64,
 }
 
-pub fn get_sentiments_of_trend(
-    conn: &mut DbConnection,
-    params: Option<web::Path<(String,)>>,
+pub async fn get_sentiments_of_trend(
+    db_pool: &DbPool,
+    topic_id: &String,
 ) -> Result<Vec<SentimentReport>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         SELECT
             COUNT(*) FILTER (WHERE sentiment = 1) as positive,
@@ -29,9 +29,7 @@ pub fn get_sentiments_of_trend(
             topic_id = $1;
     ";
 
-    let param_values = params.unwrap();
-
-    conn.query(stmt, &[&param_values.0])?
+    conn.query(stmt, &[topic_id]).await?
         .into_iter()
         .map(|row| {
             Ok(SentimentReport {
@@ -44,10 +42,12 @@ pub fn get_sentiments_of_trend(
         .collect()
 }
 
-pub fn get_sentiments_of_trend_in_location(
-    conn: &mut DbConnection,
-    params: Option<web::Path<(String, i32)>>,
+pub async fn get_sentiments_of_trend_in_location(
+    db_pool: &DbPool,
+    topic_id: &String,
+    woeid: &i32,
 ) -> Result<Vec<SentimentReport>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         SELECT
             COUNT(*) FILTER (WHERE sentiment = 1) as positive,
@@ -61,9 +61,7 @@ pub fn get_sentiments_of_trend_in_location(
             AND woeid = $2;
     ";
 
-    let param_values = params.unwrap();
-
-    conn.query(stmt, &[&param_values.0, &param_values.1])?
+    conn.query(stmt, &[topic_id, woeid]).await?
         .into_iter()
         .map(|row| {
             Ok(SentimentReport {

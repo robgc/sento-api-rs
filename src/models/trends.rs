@@ -1,9 +1,8 @@
-use actix_web::web;
 use failure::Error;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-use crate::db::DbConnection;
+use crate::db::DbPool;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,10 +41,10 @@ pub struct SearchResult {
     distance: f32,
 }
 
-pub fn get_top_trends(
-    conn: &mut DbConnection,
-    _params: Option<()>,
+pub async fn get_top_trends(
+    db_pool: &DbPool,
 ) -> Result<Vec<TopTrends>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
     SELECT DISTINCT
         topic_id,
@@ -60,7 +59,7 @@ pub fn get_top_trends(
     LIMIT 15;
     ";
 
-    conn.query(stmt, &[])?
+    conn.query(stmt, &[]).await?
         .into_iter()
         .map(|row| {
             Ok(TopTrends {
@@ -71,10 +70,11 @@ pub fn get_top_trends(
         .collect()
 }
 
-pub fn get_current_trends_for_location(
-    conn: &mut DbConnection,
-    location_woeid: Option<String>,
+pub async fn get_current_trends_for_location(
+    db_pool: &DbPool,
+    location_woeid: &i32
 ) -> Result<Vec<CurrentTrendsForLocation>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         SELECT
             to_char(ranking_ts at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') as ranking_ts,
@@ -96,7 +96,7 @@ pub fn get_current_trends_for_location(
             ranking_no asc;
     ";
 
-    conn.query(stmt, &[&location_woeid.unwrap().parse::<i32>()?])?
+    conn.query(stmt, &[location_woeid]).await?
         .into_iter()
         .map(|row| {
             Ok(CurrentTrendsForLocation {
@@ -109,10 +109,11 @@ pub fn get_current_trends_for_location(
         .collect()
 }
 
-pub fn get_trend_evolution_in_all_locations(
-    conn: &mut DbConnection,
-    params: Option<web::Path<(String,)>>,
+pub async fn get_trend_evolution_in_all_locations(
+    db_pool: &DbPool,
+    topic_id: &String,
 ) -> Result<Vec<TrendEvolutionInAllLocations>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         WITH evolution_by_location AS (
             SELECT
@@ -140,9 +141,7 @@ pub fn get_trend_evolution_in_all_locations(
             JOIN data.locations locations ON evolution.woeid = locations.id;
     ";
 
-    let param_values = params.unwrap();
-
-    conn.query(stmt, &[&param_values.0])?
+    conn.query(stmt, &[topic_id]).await?
         .into_iter()
         .map(|row| {
             Ok(TrendEvolutionInAllLocations {
@@ -153,10 +152,12 @@ pub fn get_trend_evolution_in_all_locations(
         .collect()
 }
 
-pub fn get_trend_evolution_in_location(
-    conn: &mut DbConnection,
-    params: Option<web::Path<(String, i32)>>,
+pub async fn get_trend_evolution_in_location(
+    db_pool: &DbPool,
+    topic_id: &String,
+    woeid: &i32,
 ) -> Result<Vec<serde_json::Value>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         SELECT
             json_agg(
@@ -176,18 +177,17 @@ pub fn get_trend_evolution_in_location(
             woeid;
     ";
 
-    let param_values = params.unwrap();
-
-    conn.query(stmt, &[&param_values.0, &param_values.1])?
+    conn.query(stmt, &[topic_id, woeid]).await?
         .into_iter()
         .map(|row| { Ok(row.try_get(0)?) })
         .collect()
 }
 
-pub fn search_trends_by_name(
-    conn: &mut DbConnection,
-    name: Option<String>,
+pub async fn search_trends_by_name(
+    db_pool: &DbPool,
+    query_word: &String,
 ) -> Result<Vec<SearchResult>, Error> {
+    let conn = db_pool.get().await?;
     let stmt = "
         SELECT
             id AS trend,
@@ -199,7 +199,7 @@ pub fn search_trends_by_name(
         LIMIT 20
     ";
 
-    conn.query(stmt, &[&name.unwrap()])?
+    conn.query(stmt, &[query_word]).await?
         .into_iter()
         .map(|row| {
             Ok(SearchResult {
