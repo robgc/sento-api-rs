@@ -69,7 +69,7 @@ pub async fn get_current_trends_for_location(
                     'id', locs.id,
                     'geometry', ST_AsGeoJSON(locs.the_geom_point)::jsonb,
                     'properties', json_build_object(
-                        'name', locs.name,;;
+                        'name', locs.name,
                         'osm_name', locs.osm_name
                     )
                 ) AS feature
