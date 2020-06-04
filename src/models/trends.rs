@@ -7,7 +7,7 @@ use crate::db::DbPool;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TopTrends {
-    topic_id: String,
+    trend: String,
     ranking_no: i16,
 }
 
@@ -37,7 +37,7 @@ pub struct TrendEvolutionInAllLocations {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResult {
-    id: String,
+    trend: String,
     distance: f32,
 }
 
@@ -63,7 +63,7 @@ pub async fn get_top_trends(
         .into_iter()
         .map(|row| {
             Ok(TopTrends {
-                topic_id: row.try_get(0)?,
+                trend: row.try_get(0)?,
                 ranking_no: row.try_get(1)?,
             })
         })
@@ -203,7 +203,7 @@ pub async fn search_trends_by_name(
         .into_iter()
         .map(|row| {
             Ok(SearchResult {
-                id: row.try_get(0)?,
+                trend: row.try_get(0)?,
                 distance: row.try_get(1)?,
             })
         })
