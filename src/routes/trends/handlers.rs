@@ -49,5 +49,5 @@ pub async fn get_trend_evolution_in_location(
 ) -> Result<HttpResponse, ActixWebError> {
     let query_result = Model::get_trend_evolution_in_location(&db_pool, &path_params.0, &path_params.1).await?;
 
-    Ok(HttpResponse::Ok().json(query_result))
+    Ok(HttpResponse::Ok().json(&query_result[0]))
 }
